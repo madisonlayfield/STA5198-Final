@@ -1,0 +1,65 @@
+##################################
+# Conduct TWAS using TWAS-Fusion #
+##################################
+library(optparse)
+library(RColorBrewer)
+library(plink2R)
+
+# Download HapMap 3 SNP List
+wget https://data.broadinstitute.org/alkesgroup/LDSCORE/w_hm3.snplist.bz2
+bunzip w_hm3.snplist.bz2
+
+# Quality Control Steps & Summary Statistics File Format
+./munge_sumstats.py \
+--sumstats /gpfs/home/mil18b/T1D/t1d.sumstats \
+--N 520580 \
+--out t1d \
+--snp SNP \
+--signed-sumstats beta,0 \
+--merge-alleles w_hm3.snplist 
+
+#Download weights
+mkdir WEIGHTS
+cd WEIGHTS
+wget https://data.broadinstitute.org/alkesgroup/FUSION/WGT/GTEx.Whole_Blood.tar.bz2
+tar xjf GTEx.Whole_Blood.tar.bz2
+
+#Perform TWAS for all chr
+Rscript ./FUSION.assoc_test.R \
+--sumstats /gpfs/home/mil18b/T1D/t1d.sumstats \
+--weights ./WEIGHTS/GTEx.Whole_Blood.pos \
+--weights_dir ./WEIGHTS/ \
+--ref_ld_chr ./LDREF/1000G.EUR. \
+--chr 22 \
+--out t1d_22.dat
+
+
+####################################
+# Conduct Fine-Mapping using FOCUS #
+####################################
+
+#Download weights
+wget https://www.dropbox.com/s/ep3dzlqnp7p8e5j/focus.db?dl=0
+mv focus.db?dl=0 focus.db
+
+#Download reference panel
+wget https://data.broadinstitute.org/alkesgroup/LDSCORE/1000G_Phase3_plinkfiles.tgz
+tar -xvzf 1000G_Phase3_plinkfiles.tgz
+
+#Add chr and bp to lids sumstats in R from db151
+
+#Format summary statistics
+focus munge /gpfs/home/mil18b/T1D/t1d_sumstats.txt --ignore Z --output t1d.cleaned
+
+#Run Focus; Interested in chr 1, 2, 4, 5, 6, 7, 8, 10, 11, 12, 14, 16, 17, 19, 22
+focus finemap ./T1D/t1d.cleaned.sumstats.gz ./1000G_EUR_Phase3_plink/1000G.EUR.QC.22 focus.db --chr 22 --tissue Whole_Blood --plot --out t1d.chr22
+
+#Manhattan plot for chr 1
+cat t1d_1.dat | awk 'NR == 1 || $NF < 0.05/2058' > t1d.top
+Rscript FUSION.post_process.R \
+--sumstats /gpfs/home/mil18b/T1D/t1d.sumstats \
+--input t1d.top \
+--out t1d.top.analysis \
+--ref_ld_chr ./LDREF/1000G.EUR. \
+--chr 1 \
+--plot --locus_win 100000
