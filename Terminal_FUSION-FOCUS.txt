@@ -1,6 +1,7 @@
 ##################################
 # Conduct TWAS using TWAS-Fusion #
 ##################################
+R
 library(optparse)
 library(RColorBrewer)
 library(plink2R)
@@ -24,7 +25,7 @@ cd WEIGHTS
 wget https://data.broadinstitute.org/alkesgroup/FUSION/WGT/GTEx.Whole_Blood.tar.bz2
 tar xjf GTEx.Whole_Blood.tar.bz2
 
-#Perform TWAS for all chr
+#Perform TWAS for all chr 1-22
 Rscript ./FUSION.assoc_test.R \
 --sumstats /gpfs/home/mil18b/T1D/t1d.sumstats \
 --weights ./WEIGHTS/GTEx.Whole_Blood.pos \
@@ -52,7 +53,7 @@ tar -xvzf 1000G_Phase3_plinkfiles.tgz
 focus munge /gpfs/home/mil18b/T1D/t1d_sumstats.txt --ignore Z --output t1d.cleaned
 
 #Run Focus; Interested in chr 1, 2, 4, 5, 6, 7, 8, 10, 11, 12, 14, 16, 17, 19, 22
-focus finemap ./T1D/t1d.cleaned.sumstats.gz ./1000G_EUR_Phase3_plink/1000G.EUR.QC.22 focus.db --chr 22 --tissue Whole_Blood --plot --out t1d.chr22
+focus finemap ./T1D/t1d.cleaned.sumstats.gz ./1000G_EUR_Phase3_plink/1000G.EUR.QC.22 focus.db --chr 22 --tissue Whole_Blood --plot --out t1d.chr22 --p-threshold 0.05
 
 #Manhattan plot for chr 1
 cat t1d_1.dat | awk 'NR == 1 || $NF < 0.05/2058' > t1d.top
